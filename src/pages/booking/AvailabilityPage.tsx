@@ -29,7 +29,9 @@ export function AvailabilityPage() {
     [courtId, date],
   );
 
-  useEffect(() => setSelected(undefined), [courtId, date]);
+  useEffect(() => {
+    setSelected(undefined);
+  }, [courtId, date]);
 
   function update(next: { courtId?: string; date?: string }) {
     const p = new URLSearchParams(params);
