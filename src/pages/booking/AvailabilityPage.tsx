@@ -7,7 +7,8 @@ import { SlotGrid } from "../../components/SlotGrid";
 import { Alert, Button, ErrorState, PageHeader, SelectField, Skeleton, TextField } from "../../components/ui";
 import { useAsync } from "../../hooks/useAsync";
 import { useCourts } from "../../hooks/useCourts";
-import { EMPTY_CONTACT, getBooking, saveBooking } from "../../lib/booking";
+import { useNow } from "../../hooks/useNow";
+import { EMPTY_CONTACT, getBooking, saveBooking, withPastSlotsDisabled } from "../../lib/booking";
 import { COURT_STATUS_LABEL, formatDate, formatMoney, isValidIsoDate, todayIso } from "../../lib/format";
 
 /** /booking/availability — elegir cancha y fecha, ver franjas libres (FR-002 a FR-005). */
@@ -23,7 +24,7 @@ export function AvailabilityPage() {
   // Fechas pasadas deshabilitadas: refleja el invariante INV-001 de Reservation.
   const date = isValidIsoDate(requestedDate) && requestedDate >= today ? requestedDate : today;
 
-  const [selected, setSelected] = useState<IsoTime | undefined>();
+  const [selectedSlot, setSelected] = useState<IsoTime | undefined>();
   const availability = useAsync(
     () => (courtId ? reservationsApi.availability(courtId, date) : Promise.resolve(null)),
     [courtId, date],
@@ -51,6 +52,11 @@ export function AvailabilityPage() {
 
   const court = courts.data?.find((c) => c.id === courtId);
   const data = availability.data;
+  // Las franjas que ya empezaron (hora del negocio) se muestran deshabilitadas.
+  const now = useNow();
+  const slots = data ? withPastSlotsDisabled(data.slots, date, now) : [];
+  const hasAvailability = slots.some((s) => s.available);
+  const selected = selectedSlot && slots.some((s) => s.startTime === selectedSlot && s.available) ? selectedSlot : undefined;
 
   function onContinue() {
     if (!court || !selected || !data) return;
@@ -61,7 +67,7 @@ export function AvailabilityPage() {
       date,
       startTime: selected,
       hourlyPrice: data.hourlyPrice,
-      slots: data.slots,
+      slots,
       hours: 1,
       customer: previous?.customer ?? EMPTY_CONTACT,
     });
@@ -113,9 +119,10 @@ export function AvailabilityPage() {
           <Alert tone="info" title="La cancha está cerrada este día">
             Prueba otra fecha u otra cancha.
           </Alert>
-        ) : data && !data.hasAvailability ? (
+        ) : data && !hasAvailability ? (
           <Alert tone="info" title="No hay franjas disponibles para esta fecha">
-            Todas las franjas de {court?.name ?? "esta cancha"} están reservadas. Prueba otro día u otra cancha.
+            Las franjas de {court?.name ?? "esta cancha"} que quedan hoy ya pasaron o están reservadas. Prueba otro
+            día u otra cancha.
           </Alert>
         ) : data ? (
           <>
@@ -123,7 +130,7 @@ export function AvailabilityPage() {
               <h2 className="capitalize">{formatDate(date)}</h2>
               <p className="muted">{formatMoney(data.hourlyPrice)} por hora</p>
             </div>
-            <SlotGrid slots={data.slots} selected={selected} onSelect={setSelected} />
+            <SlotGrid slots={slots} selected={selected} onSelect={setSelected} />
             <ul className="legend" aria-hidden="true">
               <li>
                 <span className="legend-swatch slot-free" /> Libre
