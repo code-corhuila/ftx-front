@@ -32,6 +32,13 @@ npm run dev
 
 Abre `http://localhost:5173`.
 
+Pruebas y verificación de tipos:
+
+```bash
+npm test
+npm run typecheck
+```
+
 ### Dos modos
 
 | `VITE_API_MOCK` | Qué hace |
@@ -93,6 +100,12 @@ Decisiones que vale la pena conocer:
   peticiones públicas nunca envían `Authorization`.
 - **Código de reserva:** en fuente monoespaciada, con copiar e imprimir. Las últimas reservas se
   recuerdan en este dispositivo ("Tus reservas recientes", mitigación de `navigation-map.md`).
+- **Horas pasadas:** una reserva debe empezar en el minuto actual o después, en la hora del
+  negocio (`America/Bogota`, UTC−5), nunca en la del computador del cliente ni en UTC. A las 18:00
+  se acepta la franja de las 18:00 y se rechaza 17:59 o antes; no hay tiempo de anticipación
+  porque el dominio no lo define. La regla vive en `src/lib/businessClock.ts`: la interfaz
+  deshabilita esas franjas y avisa antes de enviar, y el backend responde 422
+  `BUSINESS_RULE_VIOLATION` (campo `startTime`). El backend es la validación definitiva.
 
 ## Contenedor
 
@@ -132,6 +145,7 @@ El navegador llama al gateway por el puerto publicado del host, no por la red in
 | Formato del código de reserva | ADR-007 pendiente; se valida `^[A-Z0-9]{1,20}$` |
 | Ruta del webhook de Wompi | Q-002: el frontend no la llama (solo la pasarela simulada) |
 | Tipos generados | Escritos a mano en `src/api/types.ts`. Se pueden generar con `openapi-typescript` desde los YAML de `ftx-docs` |
+| Horas pasadas en el reservation-service real | Implementado en el backend simulado. El servicio real debe aplicar la misma regla en America/Bogota, y `reservation-service.yaml` (422 de `POST /reservations`) debe decir "hora de inicio en el pasado", no solo "fecha" |
 
 ---
 

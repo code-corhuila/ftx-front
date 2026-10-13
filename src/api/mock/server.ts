@@ -28,6 +28,7 @@ import type {
   ReservationStatus,
   Schedule,
 } from "../types";
+import { businessToday, isPastStart } from "../../lib/businessClock";
 import { COURT_STATUS_TRANSITIONS, COURT_STATUSES } from "../../lib/courtRules";
 import {
   addDays,
@@ -526,7 +527,13 @@ const createReservation: Handler = ({ d, body, headers }) => {
   const schedule = scheduleOf(d, court.id, dayOfWeekOf(date));
   const rules: ErrorDetail[] = [];
   if (court.status !== "ACTIVE") rules.push({ field: "courtId", message: "La cancha no está disponible para reservas" });
-  if (date < todayIso()) rules.push({ field: "reservationDate", message: "La fecha no puede estar en el pasado" });
+  // Fecha y hora actuales en la zona del negocio, leídas una sola vez para ambas comprobaciones.
+  const now = new Date();
+  if (date < businessToday(now)) {
+    rules.push({ field: "reservationDate", message: "La fecha no puede estar en el pasado" });
+  } else if (isPastStart(date, start, now)) {
+    rules.push({ field: "startTime", message: "La hora de inicio ya pasó; elige una franja que aún no haya empezado" });
+  }
   if (e <= s) rules.push({ field: "endTime", message: "La hora final debe ser posterior a la inicial" });
   else if ((e - s) % 60 !== 0) rules.push({ field: "endTime", message: "La reserva debe cubrir horas completas" });
   if (!schedule || s < timeToMinutes(schedule.openingTime) || e > timeToMinutes(schedule.closingTime)) {
