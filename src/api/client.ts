@@ -46,9 +46,17 @@ export class ApiError extends Error {
 
 /** El servidor no respondió (sin red, gateway caído, CORS bloqueado). */
 export class NetworkError extends Error {
-  constructor() {
-    super("Sin conexión con el servidor");
+  constructor(message = "Sin conexión con el servidor") {
+    super(message);
     this.name = "NetworkError";
+  }
+}
+
+/** El servidor no respondió dentro de `config.apiTimeoutMs`. */
+export class TimeoutError extends NetworkError {
+  constructor() {
+    super("El servidor tardó demasiado en responder");
+    this.name = "TimeoutError";
   }
 }
 
@@ -119,12 +127,28 @@ export function registerAuthHooks(hooks: AuthHooks): void {
 
 // ─── API pública ─────────────────────────────────────────────────────────────
 
-/** Las lecturas se reintentan ante fallos de red ("Sin conexión. Reintentando…"). */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new TimeoutError()), ms);
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        window.clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
+/** Las lecturas se reintentan ante fallos de red o timeouts ("Sin conexión. Reintentando…"). */
 async function send(req: ApiRequest): Promise<ApiRawResponse> {
   const attempts = req.method === "GET" ? 3 : 1;
   for (let attempt = 1; ; attempt++) {
     try {
-      return await transport(req);
+      return await withTimeout(transport(req), config.apiTimeoutMs);
     } catch (err) {
       if (!(err instanceof NetworkError) || attempt >= attempts) throw err;
       await sleep(1000 * attempt);
