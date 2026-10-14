@@ -2,17 +2,20 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { getBooking, saveBooking } from "../../lib/booking";
+import { addDays, todayIso } from "../../lib/format";
 import { errorBody, stubGateway } from "../../test/http";
 import { BookingDetailsPage } from "./BookingDetailsPage";
 import { BookingFailedPage } from "./BookingFailedPage";
 
 const COURT_ID = "7c0f4c3e-2a55-4a3b-9f0d-1b8f6e2a9c11";
+// Siempre en el futuro: una franja que ya empezó se bloquea antes de llamar a la API.
+const DATE = addDays(todayIso(), 7);
 
 function startBooking() {
   saveBooking({
     courtId: COURT_ID,
     courtName: "Cancha 1",
-    date: "2026-10-20",
+    date: DATE,
     startTime: "18:00:00",
     hourlyPrice: { amount: 60000, currency: "COP" },
     slots: [{ startTime: "18:00:00", endTime: "19:00:00", available: true }],
@@ -42,7 +45,7 @@ describe("BookingDetailsPage", () => {
     expect(await screen.findByRole("heading", { name: "Esa franja acaba de ser reservada" })).toBeTruthy();
     expect(screen.getByText(/No se hizo ningún cobro/)).toBeTruthy();
     expect(screen.getByRole("link", { name: "Elegir otra franja" }).getAttribute("href")).toBe(
-      `/booking/availability?courtId=${COURT_ID}&date=2026-10-20`,
+      `/booking/availability?courtId=${COURT_ID}&date=${DATE}`,
     );
   });
 
@@ -61,7 +64,7 @@ describe("BookingDetailsPage", () => {
   });
 
   it("si la reserva se crea continúa al pago", async () => {
-    const calls = stubGateway({ status: 201, body: { reservationCode: "FTX7Q2K9M4", reservationDate: "2026-10-20", startTime: "18:00:00" } });
+    const calls = stubGateway({ status: 201, body: { reservationCode: "FTX7Q2K9M4", reservationDate: DATE, startTime: "18:00:00" } });
     startBooking();
 
     submit();
