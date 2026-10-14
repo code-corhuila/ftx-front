@@ -67,6 +67,26 @@ They only work against the simulated data.
 | `/admin/schedules` | `PUT` / `DELETE /admin/courts/{id}/schedules/{dayOfWeek}` | court |
 | `/admin/reservations` | `GET /admin/reservations`, `POST /admin/reservations/{id}/cancellation` | reservation |
 
+## Injected failure: Wompi unavailable (HU-PAY-006)
+
+The simulated mode can reproduce a Wompi outage so the degradation can be shown in a demo:
+
+1. Press **"Simular caída de Wompi"** in the yellow banner (or start with `VITE_MOCK_FAULTS=wompi-down`).
+2. Book a slot and continue to payment. The simulated `payment-service` waits for the Wompi
+   timeout (3 s) and answers **503 `SERVICE_UNAVAILABLE`**, as `payment-service.yaml` defines.
+   After 3 consecutive failures the circuit opens and the next checkouts fail at once, without
+   waiting (AC1).
+3. The payment screen explains that the reservation is still **PENDING** and nothing was charged,
+   and offers **"Reintentar pago"** (same `Idempotency-Key`) or **"Cancelar reserva"**, which frees
+   the slot (compensation from the client side).
+4. Availability, reservation creation and lookup keep working while the circuit is open (AC3).
+5. Press **"Restablecer Wompi"**. Once the open interval (10 s) expires, the next checkout redirects
+   to the payment page again (AC2).
+
+This only simulates the circuit breaker in the browser; it does not replace the real
+`payment-service` implementation. Every request also has a timeout (`VITE_API_TIMEOUT_MS`, 10 s by
+default); only `GET` requests are retried.
+
 ## Structure
 
 ```text
@@ -127,6 +147,7 @@ The browser calls the gateway through the host's published port, not the interna
 
 | Topic | Status |
 |---|---|
+| Wompi circuit breaker | Simulated in `src/api/mock/faults.ts` (HU-PAY-006). The real one belongs to `payment-service` |
 | Payment status in `/reservations/:code` | `navigation-map.md` requires it, but no contract exposes a payments `GET`. For now the reservation status is shown |
 | Cancellation policy | Pending in the domain; the frontend shows the 422 `CANCELLATION_NOT_ALLOWED` if it arrives |
 | Reservation code format | ADR-007 pending; validated with `^[A-Z0-9]{1,20}$` |
