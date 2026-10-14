@@ -1,7 +1,7 @@
-# Imagen de producción del frontend (qa/prod). Propuesta para la decisión abierta 2 de
-# 10-devops/environments.md: build de Vite servido por nginx.
+# Production image of the frontend (qa/prod). Proposal for open decision 2 of
+# 10-devops/environments.md: Vite build served by nginx.
 #
-# VITE_* se incrustan en tiempo de build, así que se construye una imagen por entorno:
+# VITE_* values are embedded at build time, so one image is built per environment:
 #   docker build --build-arg VITE_API_BASE_URL=http://localhost:8180 -t ftx-front:qa .
 
 FROM node:22-alpine AS build

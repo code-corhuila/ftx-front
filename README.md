@@ -1,65 +1,65 @@
-# ftx-front — Frontend web de Futbolix
+# ftx-front — Futbolix web frontend
 
-Parte del sistema distribuido **Futbolix**. El gobierno del proyecto y la documentación viven en
+Part of the **Futbolix** distributed system. Project governance and documentation live in
 [`ftx-docs`](https://github.com/code-corhuila/ftx-docs).
 
-Aplicación React + Vite + TypeScript del sistema de reservas de canchas Futbolix. Implementa
-las pantallas de `ftx-docs/12-ux-ui/navigation-map.md` y consume **solo el API Gateway**
-(`/api/v1`) según los contratos de `ftx-docs/07-api/contracts/openapi/`.
+React + Vite + TypeScript application for the Futbolix court reservation system. It implements the
+screens of `ftx-docs/12-ux-ui/navigation-map.md` and consumes **only the API Gateway**
+(`/api/v1`) according to the contracts in `ftx-docs/07-api/contracts/openapi/`.
 
 ```text
-Navegador ── web :5173 ── fetch ──► API Gateway :8080 /api/v1
-                                     ├─► user-service        :8081   /auth/**
-                                     ├─► court-service       :8082   /courts/**, /admin/courts/**
-                                     ├─► reservation-service :8083   /availability, /reservations/**, /admin/reservations/**
-                                     └─► payment-service     :8084   /payments/**
+Browser ── web :5173 ── fetch ──► API Gateway :8080 /api/v1
+                                   ├─► user-service        :8081   /auth/**
+                                   ├─► court-service       :8082   /courts/**, /admin/courts/**
+                                   ├─► reservation-service :8083   /availability, /reservations/**, /admin/reservations/**
+                                   └─► payment-service     :8084   /payments/**
 ```
 
-## Requisitos
+## Requirements
 
-| Herramienta | Versión |
+| Tool | Version |
 |---|---|
-| Node.js | 22 LTS (22.12 o superior) — `10-devops/local-setup.md` |
-| npm | La que trae Node |
+| Node.js | 22 LTS (22.12 or higher) — `10-devops/local-setup.md` |
+| npm | The one bundled with Node |
 
-## Arrancar en local
+## Run locally
 
 ```bash
-copy .env.example .env      # Windows (en macOS/Linux: cp .env.example .env)
+copy .env.example .env      # Windows (macOS/Linux: cp .env.example .env)
 npm install
 npm run dev
 ```
 
-Abre `http://localhost:5173`.
+Open `http://localhost:5173`.
 
-### Dos modos
+### Two modes
 
-| `VITE_API_MOCK` | Qué hace |
+| `VITE_API_MOCK` | What it does |
 |---|---|
-| `true` (valor de `.env.example`) | **Backend simulado en el navegador.** No necesita gateway, microservicios, PostgreSQL ni RabbitMQ. Sirve para desarrollar y hacer demostraciones. Los datos se guardan en `localStorage` y se reinician con el botón "Reiniciar datos" del aviso amarillo. |
-| `false` | Llama al API Gateway real en `VITE_API_BASE_URL` (`http://localhost:8080` por defecto). El gateway debe permitir el origen `http://localhost:5173` en CORS (`APP_GATEWAY_CORS_ORIGIN`). |
+| `true` (value in `.env.example`) | **Backend simulated in the browser.** No gateway, microservices, PostgreSQL or RabbitMQ needed. Useful for development and demos. Data is stored in `localStorage` and reset with the "Reset data" button of the yellow banner. |
+| `false` | Calls the real API Gateway at `VITE_API_BASE_URL` (`http://localhost:8080` by default). The gateway must allow the origin `http://localhost:5173` in CORS (`APP_GATEWAY_CORS_ORIGIN`). |
 
-El modo simulado (`src/api/mock/server.ts`) reproduce las reglas de los contratos que el frontend
-debe manejar: 409 `RESERVATION_SLOT_UNAVAILABLE` por solapamiento, `Idempotency-Key`, 404
-genérico para códigos de reserva, transiciones de estado de las canchas, JWT con refresh rotativo
-y consistencia eventual (el pago aparece ~1,5 s después de crear la reserva y la confirmación
-llega ~1,2 s después del resultado de Wompi). La pasarela se sustituye por `/mock/wompi`, con
-botones para aprobar o rechazar el pago.
+The simulated mode (`src/api/mock/server.ts`) reproduces the contract rules the frontend must
+handle: 409 `RESERVATION_SLOT_UNAVAILABLE` on overlap, `Idempotency-Key`, generic 404 for
+reservation codes, court state transitions, JWT with rotating refresh, and eventual consistency
+(the payment appears ~1.5 s after the reservation is created and the confirmation arrives ~1.2 s
+after the Wompi result). The payment gateway is replaced by `/mock/wompi`, with buttons to approve
+or reject the payment.
 
-**Administrador del modo simulado:** el correo y la contraseña de prueba están en
-`src/api/mock/constants.ts` y se muestran en `/admin/login` mientras el modo simulado está activo.
-Solo funcionan contra los datos simulados.
+**Simulated-mode administrator:** the test email and password are in
+`src/api/mock/constants.ts` and are shown at `/admin/login` while the simulated mode is active.
+They only work against the simulated data.
 
-## Pantallas y endpoints
+## Screens and endpoints
 
-| Ruta | Endpoint(s) | Servicio |
+| Route | Endpoint(s) | Service |
 |---|---|---|
 | `/`, `/courts`, `/courts/:courtId` | `GET /courts`, `GET /courts/{id}`, `GET /courts/{id}/schedules` | court |
 | `/booking/availability` | `GET /availability?courtId=&date=` | reservation |
 | `/booking/details` | `POST /reservations` + `Idempotency-Key` | reservation |
-| `/booking/payment` | `POST /payments/checkouts` + `Idempotency-Key` → redirección a Wompi | payment |
-| `/booking/confirmation/:code` | `GET /reservations/{code}` (consulta periódica hasta `CONFIRMED`/`REJECTED`) | reservation |
-| `/booking/failed` | — (409 o pago rechazado) | — |
+| `/booking/payment` | `POST /payments/checkouts` + `Idempotency-Key` → redirect to Wompi | payment |
+| `/booking/confirmation/:code` | `GET /reservations/{code}` (polling until `CONFIRMED`/`REJECTED`) | reservation |
+| `/booking/failed` | — (409 or rejected payment) | — |
 | `/reservations/lookup`, `/reservations/:code` | `GET /reservations/{code}`, `POST /reservations/{code}/cancellation` | reservation |
 | `/admin/login` | `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout` | user |
 | `/admin` | `GET /admin/reservations?dateFrom=&dateTo=`, `GET /courts` | reservation, court |
@@ -67,44 +67,44 @@ Solo funcionan contra los datos simulados.
 | `/admin/schedules` | `PUT` / `DELETE /admin/courts/{id}/schedules/{dayOfWeek}` | court |
 | `/admin/reservations` | `GET /admin/reservations`, `POST /admin/reservations/{id}/cancellation` | reservation |
 
-## Estructura
+## Structure
 
 ```text
 src/
-├── api/              Cliente HTTP y un módulo por microservicio (tipos = contratos de 07)
-│   └── mock/         Backend simulado (solo se carga con VITE_API_MOCK=true)
-├── auth/             Sesión del administrador (JWT + refresh rotativo)
-├── components/       Componentes del design system (botones, badges, grilla de franjas, código de reserva…)
+├── api/              HTTP client and one module per microservice (types = contracts from 07)
+│   └── mock/         Simulated backend (only loaded with VITE_API_MOCK=true)
+├── auth/             Administrator session (JWT + rotating refresh)
+├── components/       Design-system components (buttons, badges, slot grid, reservation code…)
 ├── hooks/            useAsync, useCourts
-├── lib/              Formato COP/fechas, validaciones del dominio, errores, estado del flujo de reserva
-├── pages/            Una página por ruta del navigation-map
-└── styles.css        Tokens de 12-ux-ui/design-system.md
+├── lib/              COP/date formatting, domain validations, errors, booking flow state
+├── pages/            One page per navigation-map route
+└── styles.css        Tokens from 12-ux-ui/design-system.md
 ```
 
-Decisiones que vale la pena conocer:
+Decisions worth knowing:
 
-- **Errores:** se traducen al español por el código estable `error` de `ErrorResponse`, nunca por
-  el texto (los mensajes del backend están en inglés).
-- **Dinero:** siempre `Money { amount: entero, currency: "COP" }`. El monto que ve el cliente es
-  una vista previa: nunca se envía; el backend lo calcula.
-- **Idempotencia:** la clave se genera una vez por intento del usuario y se reutiliza en los
-  reintentos; un doble clic en "Continuar al pago" no crea dos reservas.
-- **Sesión:** solo el administrador tiene token (en `sessionStorage`, esta pestaña). Las
-  peticiones públicas nunca envían `Authorization`.
-- **Código de reserva:** en fuente monoespaciada, con copiar e imprimir. Las últimas reservas se
-  recuerdan en este dispositivo ("Tus reservas recientes", mitigación de `navigation-map.md`).
+- **Errors:** translated to Spanish (end-user text) from the stable `error` code of `ErrorResponse`,
+  never from the message text (backend messages are in English).
+- **Money:** always `Money { amount: integer, currency: "COP" }`. The amount the customer sees is a
+  preview: it is never sent; the backend computes it.
+- **Idempotency:** the key is generated once per user attempt and reused on retries; a double click
+  on "Continue to payment" does not create two reservations.
+- **Session:** only the administrator has a token (in `sessionStorage`, this tab only). Public
+  requests never send `Authorization`.
+- **Reservation code:** monospaced font, with copy and print. The latest reservations are remembered
+  on this device ("Your recent reservations", mitigation from `navigation-map.md`).
 
-## Contenedor
+## Container
 
-Para `local`/`develop` basta el servidor de Vite. Para `qa`/`prod`, el `Dockerfile` construye la
-app y la sirve con nginx (propuesta para la decisión abierta 2 de `10-devops/environments.md`).
-`VITE_API_BASE_URL` se incrusta en el build, así que se construye una imagen por entorno:
+For `local`/`develop` the Vite server is enough. For `qa`/`prod`, the `Dockerfile` builds the app
+and serves it with nginx (proposal for open decision 2 of `10-devops/environments.md`).
+`VITE_API_BASE_URL` is embedded at build time, so one image is built per environment:
 
 ```bash
 docker build --build-arg VITE_API_BASE_URL=http://localhost:8180 -t ftx-front:qa .
 ```
 
-Entrada sugerida en el `docker-compose.yml` del sistema:
+Suggested entry for the system `docker-compose.yml`:
 
 ```yaml
   web:
@@ -120,18 +120,18 @@ Entrada sugerida en el `docker-compose.yml` del sistema:
     networks: [futbolix-net]
 ```
 
-El navegador llama al gateway por el puerto publicado del host, no por la red interna, así que
-`VITE_API_BASE_URL` usa `localhost:<puerto del gateway>`.
+The browser calls the gateway through the host's published port, not the internal network, so
+`VITE_API_BASE_URL` uses `localhost:<gateway port>`.
 
-## Pendientes que dependen del backend o de decisiones abiertas
+## Pending items that depend on the backend or open decisions
 
-| Tema | Situación |
+| Topic | Status |
 |---|---|
-| Estado del pago en `/reservations/:code` | `navigation-map.md` lo pide, pero ningún contrato expone un `GET` de pagos. Hoy se muestra el estado de la reserva |
-| Política de cancelación | Pendiente en el dominio; el frontend muestra el 422 `CANCELLATION_NOT_ALLOWED` si llega |
-| Formato del código de reserva | ADR-007 pendiente; se valida `^[A-Z0-9]{1,20}$` |
-| Ruta del webhook de Wompi | Q-002: el frontend no la llama (solo la pasarela simulada) |
-| Tipos generados | Escritos a mano en `src/api/types.ts`. Se pueden generar con `openapi-typescript` desde los YAML de `ftx-docs` |
+| Payment status in `/reservations/:code` | `navigation-map.md` requires it, but no contract exposes a payments `GET`. For now the reservation status is shown |
+| Cancellation policy | Pending in the domain; the frontend shows the 422 `CANCELLATION_NOT_ALLOWED` if it arrives |
+| Reservation code format | ADR-007 pending; validated with `^[A-Z0-9]{1,20}$` |
+| Wompi webhook route | Q-002: the frontend does not call it (only the simulated gateway) |
+| Generated types | Handwritten in `src/api/types.ts`. They can be generated with `openapi-typescript` from the YAML files in `ftx-docs` |
 
 ---
 
