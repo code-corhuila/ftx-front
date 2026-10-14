@@ -7,17 +7,21 @@ the course releases, one per MVP (`ftx-docs/00-governance/branching-policy.md`).
 
 ## [Unreleased]
 
-Open pull requests to `develop`, not merged:
+### Added (merged into `develop` on 2026-10-14)
 
-- Cancha 4 starts as ACTIVE in the mock data (#6).
 - Test setup with Vitest, Testing Library and jsdom, and `npm test` (#7).
-- Reservations that start before the current time in America/Bogota are rejected, in the form and
-  in the mock (#8).
-- Tests for the API clients and `ErrorResponse` handling (#9) and for the reservation code, the
-  409 slot conflict, the 404 lookup and the administrator route guard (#10).
-- Simulated administrator credentials read from `VITE_MOCK_ADMIN_*` instead of the code (#13).
+- Tests for the API clients and `ErrorResponse` handling (#9).
 - HU-PAY-006 in the mock: injectable Wompi outage with a circuit breaker, degraded payment screen
   with retry and cancel, and a request timeout (#14).
+
+### Open pull requests to `develop`, not merged
+
+- Cancha 4 starts as ACTIVE in the mock data (#6).
+- Reservations that start before the current time in America/Bogota are rejected, in the form and
+  in the mock (#8).
+- Tests for the reservation code, the 409 slot conflict, the 404 lookup and the administrator
+  route guard (#10).
+- Simulated administrator credentials read from `VITE_MOCK_ADMIN_*` instead of the code (#13).
 - Error boundary: a rendering error shows a retry message instead of a blank screen (#15).
 
 ## [2.0.0] - Unreleased
