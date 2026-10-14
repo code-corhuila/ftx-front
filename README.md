@@ -32,6 +32,13 @@ npm run dev
 
 Open `http://localhost:5173`.
 
+Tests and type checking:
+
+```bash
+npm test
+npm run typecheck
+```
+
 ### Two modes
 
 | `VITE_API_MOCK` | What it does |
@@ -93,6 +100,12 @@ Decisions worth knowing:
   requests never send `Authorization`.
 - **Reservation code:** monospaced font, with copy and print. The latest reservations are remembered
   on this device ("Your recent reservations", mitigation from `navigation-map.md`).
+- **Past start times:** a reservation must start at the current minute or later, in business time
+  (`America/Bogota`, UTC−5), never in the customer's device time or in UTC. At 18:00 the 18:00 slot
+  is accepted and 17:59 or earlier is rejected; there is no lead time because the domain does not
+  define one. The rule lives in `src/lib/businessClock.ts`: the UI disables those slots and warns
+  before submitting, and the backend answers 422 `BUSINESS_RULE_VIOLATION` (field `startTime`). The
+  backend is the definitive check.
 
 ## Container
 
@@ -132,6 +145,7 @@ The browser calls the gateway through the host's published port, not the interna
 | Reservation code format | ADR-007 pending; validated with `^[A-Z0-9]{1,20}$` |
 | Wompi webhook route | Q-002: the frontend does not call it (only the simulated gateway) |
 | Generated types | Handwritten in `src/api/types.ts`. They can be generated with `openapi-typescript` from the YAML files in `ftx-docs` |
+| Past start times in the real reservation-service | Implemented in the simulated backend only. The real service must apply the same rule in America/Bogota, and `reservation-service.yaml` (422 of `POST /reservations`) must say "start time in the past", not only "date". The minute-level rule is not yet written in HU-RES-002 |
 
 ---
 
