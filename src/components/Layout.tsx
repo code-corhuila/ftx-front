@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { isFaultActive, setFault, subscribeFaults } from "../api/mock/faults";
 import { logout, useSession } from "../auth/session";
 import { config } from "../config";
 import { Button } from "./ui";
 
 function MockBanner() {
+  const wompiDown = useSyncExternalStore(subscribeFaults, () => isFaultActive("wompi-down"));
+
   function reset() {
     void import("../api/mock/server").then((m) => {
       m.resetMockDb();
@@ -15,7 +18,11 @@ function MockBanner() {
     <div className="mock-banner no-print" role="note">
       <span>
         <strong>Modo simulado:</strong> los datos viven en este navegador y no hay conexión con los microservicios.
+        {wompiDown && <strong> Falla inyectada: Wompi no responde.</strong>}
       </span>
+      <button type="button" className="link-btn" aria-pressed={wompiDown} onClick={() => setFault("wompi-down", !wompiDown)}>
+        {wompiDown ? "Restablecer Wompi" : "Simular caída de Wompi"}
+      </button>
       <button type="button" className="link-btn" onClick={reset}>
         Reiniciar datos
       </button>
