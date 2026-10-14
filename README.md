@@ -46,9 +46,10 @@ reservation codes, court state transitions, JWT with rotating refresh, and event
 after the Wompi result). The payment gateway is replaced by `/mock/wompi`, with buttons to approve
 or reject the payment.
 
-**Simulated-mode administrator:** the test email and password are in
-`src/api/mock/constants.ts` and are shown at `/admin/login` while the simulated mode is active.
-They only work against the simulated data.
+**Simulated-mode administrator:** the test email and password come from `VITE_MOCK_ADMIN_EMAIL`
+and `VITE_MOCK_ADMIN_PASSWORD` (`.env.example` has mock-only values) and are shown at
+`/admin/login` while the simulated mode is active. They only work against the simulated data and
+are not embedded in the code. Without them, the simulated login rejects every credential.
 
 ## Screens and endpoints
 

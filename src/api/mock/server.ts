@@ -702,7 +702,7 @@ const login: Handler = ({ d, body }) => {
   if (password.length < 8 || password.length > 100) details.push({ field: "password", message: "Entre 8 y 100 caracteres" });
   if (details.length) return invalid(details);
 
-  if (email.toLowerCase() !== MOCK_ADMIN.email || password !== MOCK_ADMIN.password) {
+  if (!MOCK_ADMIN.configured || email.toLowerCase() !== MOCK_ADMIN.email.toLowerCase() || password !== MOCK_ADMIN.password) {
     return fail(401, "INVALID_CREDENTIALS", "Invalid email or password");
   }
   return ok(issueTokens(d));
