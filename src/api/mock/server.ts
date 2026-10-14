@@ -78,7 +78,8 @@ interface Db {
 }
 
 const STORAGE_KEY = "ftx.mock.db";
-const DB_VERSION = 1;
+// Subir la versión cuando cambian los datos iniciales: descarta los datos guardados en el navegador.
+const DB_VERSION = 2;
 const ACCESS_TOKEN_TTL_MS = 3600 * 1000;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -95,7 +96,7 @@ const COURT_SEED: Array<[string, string, number, number, CourtStatus]> = [
   ["7c0f4c3e-2a55-4a3b-9f0d-1b8f6e2a9c11", "Cancha 1", 10, 60000, "ACTIVE"],
   ["2b8d5f1a-6c3e-4d7b-8a9f-0e1d2c3b4a51", "Cancha 2", 10, 60000, "ACTIVE"],
   ["9e4a7b2c-1d3f-4e5a-b6c7-d8e9f0a1b2c3", "Cancha 3", 14, 90000, "ACTIVE"],
-  ["5f6e7d8c-9b0a-4c1d-8e2f-3a4b5c6d7e8f", "Cancha 4", 14, 90000, "UNDER_MAINTENANCE"],
+  ["5f6e7d8c-9b0a-4c1d-8e2f-3a4b5c6d7e8f", "Cancha 4", 14, 90000, "ACTIVE"],
 ];
 
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 32 símbolos: sin sesgo de módulo
