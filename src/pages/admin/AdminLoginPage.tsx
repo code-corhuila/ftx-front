@@ -72,10 +72,17 @@ export function AdminLoginPage() {
           Iniciar sesión
         </Button>
       </form>
-      {config.mock && (
+      {config.mock && MOCK_ADMIN.configured && (
         <p className="muted small mock-hint">
           Modo simulado — usuario de prueba: <span className="mono">{MOCK_ADMIN.email}</span> · contraseña:{" "}
           <span className="mono">{MOCK_ADMIN.password}</span>
+        </p>
+      )}
+      {config.mock && !MOCK_ADMIN.configured && (
+        <p className="muted small mock-hint">
+          Modo simulado sin usuario de prueba: define <span className="mono">VITE_MOCK_ADMIN_EMAIL</span> y{" "}
+          <span className="mono">VITE_MOCK_ADMIN_PASSWORD</span> en <span className="mono">.env</span> (ver{" "}
+          <span className="mono">.env.example</span>).
         </p>
       )}
     </div>
