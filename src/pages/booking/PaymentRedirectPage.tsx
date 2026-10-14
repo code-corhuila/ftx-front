@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { ApiError, sleep } from "../../api/client";
+import { ApiError, NetworkError, sleep } from "../../api/client";
 import { paymentsApi } from "../../api/payments";
+import { reservationsApi } from "../../api/reservations";
 import type { Reservation } from "../../api/types";
 import { BookingSteps } from "../../components/BookingSteps";
+import { CancelReservationDialog } from "../../components/ConfirmDialog";
 import { ReservationCodeBlock } from "../../components/ReservationCodeBlock";
 import { ReservationSummary } from "../../components/ReservationSummary";
 import { Alert, Button, PageHeader, Spinner } from "../../components/ui";
-import { getBooking, updateBooking } from "../../lib/booking";
+import { clearBooking, getBooking, updateBooking } from "../../lib/booking";
 import { errorMessage, isApiError } from "../../lib/errors";
 import { uuid } from "../../lib/uuid";
 
@@ -21,6 +23,14 @@ export function PaymentRedirectPage() {
 }
 
 type Phase = "starting" | "waiting" | "redirecting" | "error";
+
+/**
+ * La pasarela no está disponible: 503 de payment-service (Wompi no respondió o el circuito está
+ * abierto, payment-service.yaml) o el gateway no respondió a tiempo. El pago sigue PENDING.
+ */
+function isPaymentUnavailable(err: unknown): boolean {
+  return (err instanceof ApiError && err.status === 503) || err instanceof NetworkError;
+}
 
 function isSafeRedirect(url: string): boolean {
   try {
@@ -36,7 +46,24 @@ function PaymentRedirect({ reservation, courtName }: { reservation: Reservation;
   const [phase, setPhase] = useState<Phase>("starting");
   const [error, setError] = useState<unknown>(null);
   const [run, setRun] = useState(0);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
   const code = reservation.reservationCode;
+
+  /** Compensación iniciada por el cliente: cancelar la reserva PENDING libera la franja. */
+  async function cancelReservation(reason: string) {
+    setCancelling(true);
+    setCancelError(null);
+    try {
+      await reservationsApi.cancelByCode(code, reason || "Pago no disponible");
+      clearBooking();
+      navigate(`/reservations/${code}`, { replace: true });
+    } catch (err) {
+      setCancelError(errorMessage(err));
+      setCancelling(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -81,6 +108,7 @@ function PaymentRedirect({ reservation, courtName }: { reservation: Reservation;
     };
   }, [code, run, navigate]);
 
+  const unavailable = isPaymentUnavailable(error);
   const gatewayDown = error instanceof ApiError && error.status >= 500;
 
   return (
@@ -100,7 +128,32 @@ function PaymentRedirect({ reservation, courtName }: { reservation: Reservation;
           {phase === "starting" && <Spinner label="Preparando el pago con Wompi…" />}
           {phase === "waiting" && <Spinner label="Estamos registrando tu pago. Un momento…" />}
           {phase === "redirecting" && <Spinner label="Te estamos llevando a Wompi…" />}
-          {phase === "error" && (
+          {phase === "error" && unavailable && (
+            <Alert tone="warning" title="Wompi no está disponible en este momento">
+              <p>
+                Tu reserva <span className="mono">{code}</span> sigue pendiente y no se hizo ningún cobro. Puedes
+                reintentar el pago en unos minutos o cancelar la reserva para liberar la franja.
+              </p>
+              <div className="actions">
+                <Button variant="primary" onClick={() => setRun((n) => n + 1)}>
+                  Reintentar pago
+                </Button>
+                <Button
+                  variant="danger"
+                  onClick={() => {
+                    setCancelError(null);
+                    setCancelOpen(true);
+                  }}
+                >
+                  Cancelar reserva
+                </Button>
+                <Link to={`/reservations/${code}`} className="btn btn-ghost">
+                  Ver mi reserva
+                </Link>
+              </div>
+            </Alert>
+          )}
+          {phase === "error" && !unavailable && (
             <Alert
               tone="error"
               title={gatewayDown ? "No pudimos contactar la pasarela. Tu reserva sigue pendiente." : errorMessage(error)}
@@ -119,6 +172,14 @@ function PaymentRedirect({ reservation, courtName }: { reservation: Reservation;
         </div>
         <ReservationCodeBlock code={code} />
       </div>
+      <CancelReservationDialog
+        open={cancelOpen}
+        code={code}
+        loading={cancelling}
+        error={cancelError}
+        onConfirm={cancelReservation}
+        onCancel={() => setCancelOpen(false)}
+      />
     </>
   );
 }
