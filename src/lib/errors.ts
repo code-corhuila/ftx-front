@@ -1,4 +1,4 @@
-import { ApiError, NetworkError } from "../api/client";
+import { ApiError, NetworkError, TimeoutError } from "../api/client";
 import { camelizeField } from "./validation";
 
 // Los mensajes del backend están en inglés (contratos de 07). La interfaz es en español,
@@ -26,6 +26,9 @@ const MESSAGES: Record<string, string> = {
 };
 
 export function errorMessage(err: unknown): string {
+  if (err instanceof TimeoutError) {
+    return "El servidor tardó demasiado en responder. Intenta de nuevo en unos minutos.";
+  }
   if (err instanceof NetworkError) {
     return "Sin conexión con el servidor. Revisa tu conexión e intenta de nuevo.";
   }
