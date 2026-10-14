@@ -41,6 +41,7 @@ import {
 import { readJson, removeKey, writeJson } from "../../lib/storage";
 import { uuid } from "../../lib/uuid";
 import { MOCK_ADMIN, MOCK_WEBHOOK_SIGNATURE } from "./constants";
+import { callWompi, resetCircuit, WOMPI_TIMEOUT_MS, type WompiOutcome } from "./faults";
 
 // ─── Modelo ──────────────────────────────────────────────────────────────────
 
@@ -229,6 +230,7 @@ function persist(): void {
 export function resetMockDb(): void {
   removeKey("local", STORAGE_KEY);
   db = null;
+  resetCircuit();
 }
 
 // ─── Eventos de dominio (RabbitMQ simulado) ──────────────────────────────────
@@ -301,6 +303,8 @@ interface Ctx {
   query: Record<string, string>;
   body: unknown;
   headers: Record<string, string>;
+  /** payment-service llama a Wompi Sandbox a través de su circuit breaker (HU-PAY-006). */
+  wompi: () => WompiOutcome;
 }
 
 type Handler = (ctx: Ctx) => ApiRawResponse;
@@ -635,7 +639,7 @@ const listReservations: Handler = ({ d, query }) => {
 
 // ─── payment-service ─────────────────────────────────────────────────────────
 
-const startCheckout: Handler = ({ d, body, headers }) => {
+const startCheckout: Handler = ({ d, body, headers, wompi }) => {
   const key = headers["idempotency-key"] ?? "";
   if (!UUID_RE.test(key)) return invalid([{ field: "Idempotency-Key", message: "Cabecera requerida (UUID)" }]);
   const scope = `checkouts:${key}`;
@@ -650,6 +654,11 @@ const startCheckout: Handler = ({ d, body, headers }) => {
   if (!reservation || !payment) return notFound();
   if (payment.status !== "PENDING" || reservation.status !== "PENDING") {
     return fail(409, "PAYMENT_NOT_PENDING", "The payment for this reservation can no longer be started");
+  }
+  // payment-service.yaml: 503 = Wompi Sandbox did not respond in time or is unavailable, and the
+  // payment remains PENDING. No se guarda como respuesta idempotente: un reintento vuelve a probar.
+  if (wompi() !== "ok") {
+    return fail(503, "SERVICE_UNAVAILABLE", "Wompi Sandbox did not respond in time or is unavailable");
   }
 
   const transaction = payment.wompiTransactionId ?? `MOCK-${uuid().slice(0, 8).toUpperCase()}`;
@@ -702,7 +711,7 @@ const login: Handler = ({ d, body }) => {
   if (password.length < 8 || password.length > 100) details.push({ field: "password", message: "Entre 8 y 100 caracteres" });
   if (details.length) return invalid(details);
 
-  if (email.toLowerCase() !== MOCK_ADMIN.email || password !== MOCK_ADMIN.password) {
+  if (!MOCK_ADMIN.configured || email.toLowerCase() !== MOCK_ADMIN.email.toLowerCase() || password !== MOCK_ADMIN.password) {
     return fail(401, "INVALID_CREDENTIALS", "Invalid email or password");
   }
   return ok(issueTokens(d));
@@ -773,17 +782,22 @@ export async function mockTransport(req: ApiRequest): Promise<ApiRawResponse> {
   const query: Record<string, string> = {};
   for (const [k, v] of Object.entries(req.query ?? {})) if (v !== undefined && v !== "") query[k] = String(v);
 
+  const wompiCall: { outcome: WompiOutcome | null } = { outcome: null };
+  const wompi = () => (wompiCall.outcome = callWompi(Date.now()));
+
   let res = notFound();
   for (const [method, pattern, handler] of routes) {
     if (method !== req.method) continue;
     const match = pattern.exec(req.path);
     if (match) {
-      res = handler({ d, params: match.slice(1).map(safeDecode), query, body: req.body, headers });
+      res = handler({ d, params: match.slice(1).map(safeDecode), query, body: req.body, headers, wompi });
       break;
     }
   }
 
   persist();
+  // Wompi no respondió: payment-service esperó su timeout antes de contestar 503.
+  if (wompiCall.outcome === "timeout") await new Promise((resolve) => window.setTimeout(resolve, WOMPI_TIMEOUT_MS));
   // Copia profunda: la UI nunca comparte objetos con la "base de datos".
   return { status: res.status, body: res.body === undefined ? undefined : JSON.parse(JSON.stringify(res.body)) };
 }
