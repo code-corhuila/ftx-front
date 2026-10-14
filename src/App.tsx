@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AdminLayout, PublicLayout } from "./components/Layout";
 import { RequireAdmin } from "./components/RequireAdmin";
 import { config } from "./config";
@@ -33,7 +34,7 @@ function ScrollToTop() {
 /** Rutas de ftx-docs/12-ux-ui/navigation-map.md. Todo /admin exige sesión; lo demás es público. */
 export default function App() {
   return (
-    <>
+    <ErrorBoundary>
       <ScrollToTop />
       <Routes>
         <Route element={<PublicLayout />}>
@@ -76,6 +77,6 @@ export default function App() {
           <Route path="reservations" element={<AdminReservationListPage />} />
         </Route>
       </Routes>
-    </>
+    </ErrorBoundary>
   );
 }
