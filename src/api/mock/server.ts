@@ -197,15 +197,16 @@ function seed(): Db {
     });
   };
 
-  seedReservation(0, 0, "18:00:00", 2, "CONFIRMED", "Juan Pérez", "juan@example.com", "+573001234567");
-  seedReservation(0, 0, "20:00:00", 1, "PENDING", "Laura Gómez", "laura@example.com", "+573109876543");
-  seedReservation(1, 0, "19:00:00", 1, "CONFIRMED", "Andrés Torres", "andres@example.com", "+573201112233");
-  seedReservation(2, 0, "17:00:00", 2, "CANCELLED", "María López", "maria@example.com", "+573154445566");
-  seedReservation(0, 1, "19:00:00", 1, "CONFIRMED", "Sofía Ramírez", "sofia@example.com", "+573123334455");
-  seedReservation(1, 1, "20:00:00", 2, "CONFIRMED", "Diego Herrera", "diego@example.com", "+573056667788");
-  seedReservation(2, 2, "18:00:00", 1, "PENDING", "Felipe Mora", "felipe@example.com", "+573221223344");
-  seedReservation(0, -1, "18:00:00", 1, "CONFIRMED", "Natalia Cruz", "natalia@example.com", "+573189990011");
-  seedReservation(1, -1, "20:00:00", 1, "REJECTED", "Camilo Ríos", "camilo@example.com", "+573145556677");
+  // Fictitious customers on purpose: no name, email or phone shaped like a real person.
+  seedReservation(0, 0, "18:00:00", 2, "CONFIRMED", "Cliente de prueba 1", "cliente1@example.test", "+570000000001");
+  seedReservation(0, 0, "20:00:00", 1, "PENDING", "Cliente de prueba 2", "cliente2@example.test", "+570000000002");
+  seedReservation(1, 0, "19:00:00", 1, "CONFIRMED", "Cliente de prueba 3", "cliente3@example.test", "+570000000003");
+  seedReservation(2, 0, "17:00:00", 2, "CANCELLED", "Cliente de prueba 4", "cliente4@example.test", "+570000000004");
+  seedReservation(0, 1, "19:00:00", 1, "CONFIRMED", "Cliente de prueba 5", "cliente5@example.test", "+570000000005");
+  seedReservation(1, 1, "20:00:00", 2, "CONFIRMED", "Cliente de prueba 6", "cliente6@example.test", "+570000000006");
+  seedReservation(2, 2, "18:00:00", 1, "PENDING", "Cliente de prueba 7", "cliente7@example.test", "+570000000007");
+  seedReservation(0, -1, "18:00:00", 1, "CONFIRMED", "Cliente de prueba 8", "cliente8@example.test", "+570000000008");
+  seedReservation(1, -1, "20:00:00", 1, "REJECTED", "Cliente de prueba 9", "cliente9@example.test", "+570000000009");
 
   return d;
 }

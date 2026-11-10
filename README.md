@@ -30,7 +30,8 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173`.
+Open `http://localhost:5173`. To use the administration screens in simulated mode, first write a
+local password of your choice in `VITE_MOCK_ADMIN_PASSWORD` inside `.env` (it is empty on purpose).
 
 ### Two modes
 
@@ -47,9 +48,10 @@ after the Wompi result). The payment gateway is replaced by `/mock/wompi`, with 
 or reject the payment.
 
 **Simulated-mode administrator:** the test email and password come from `VITE_MOCK_ADMIN_EMAIL`
-and `VITE_MOCK_ADMIN_PASSWORD` (`.env.example` has mock-only values) and are shown at
+and `VITE_MOCK_ADMIN_PASSWORD` in your local `.env` (the password is never versioned) and are shown at
 `/admin/login` while the simulated mode is active. They only work against the simulated data and
 are not embedded in the code. Without them, the simulated login rejects every credential.
+The simulated customers are fictitious on purpose ("Cliente de prueba N", `example.test` emails).
 
 ## Screens and endpoints
 
