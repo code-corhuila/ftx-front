@@ -6,7 +6,7 @@ import { mockTransport, resetMockDb } from "./server";
 // Solicitudes directas a POST /reservations, como si alguien manipulara la interfaz o llamara
 // a la API sin ella. Solo se simula `Date`, así que la hora del "sistema" queda fija.
 
-const COURT_2 = "2b8d5f1a-6c3e-4d7b-8a9f-0e1d2c3b4a51"; // lun–vie 08–22, sáb–dom 07–23
+const COURT_2 = "c0000000-0000-4000-8000-000000000002"; // lun–vie 08–22, sáb–dom 07–23
 
 function createReservation(reservationDate: string, startTime: string, endTime: string): Promise<ApiRawResponse> {
   return mockTransport({
