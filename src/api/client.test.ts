@@ -6,7 +6,7 @@ import { courtsApi } from "./courts";
 import { paymentsApi } from "./payments";
 import { reservationsApi } from "./reservations";
 
-const COURT_ID = "7c0f4c3e-2a55-4a3b-9f0d-1b8f6e2a9c11";
+const COURT_ID = "c0000000-0000-4000-8000-000000000001";
 const KEY = "0b6c2a56-6d4e-4a8e-9a43-8c1f0f5e2d11";
 
 afterEach(() => {

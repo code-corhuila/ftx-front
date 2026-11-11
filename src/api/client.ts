@@ -1,4 +1,5 @@
 import { API_PREFIX, config } from "../config";
+import { usesRealBackend } from "./routing";
 import type { ErrorResponse } from "./types";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -107,7 +108,9 @@ const mockTransport: Transport = async (req) => {
   return (await mockTransportPromise)(req);
 };
 
-const transport: Transport = config.mock ? mockTransport : httpTransport;
+/** Cada petición va al backend real o al simulado según su servicio (modo mixto, routing.ts). */
+const transport: Transport = (req) =>
+  usesRealBackend(req.path, config.mock, config.realDomains) ? httpTransport(req) : mockTransport(req);
 
 // ─── Integración con la sesión del administrador ─────────────────────────────
 

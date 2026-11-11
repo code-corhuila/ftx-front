@@ -7,7 +7,7 @@ import { errorBody, stubGateway } from "../../test/http";
 import { BookingDetailsPage } from "./BookingDetailsPage";
 import { BookingFailedPage } from "./BookingFailedPage";
 
-const COURT_ID = "7c0f4c3e-2a55-4a3b-9f0d-1b8f6e2a9c11";
+const COURT_ID = "c0000000-0000-4000-8000-000000000001";
 // Siempre en el futuro: una franja que ya empezó se bloquea antes de llamar a la API.
 const DATE = addDays(todayIso(), 7);
 

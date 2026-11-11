@@ -46,6 +46,35 @@ npm run typecheck
 | `true` (value in `.env.example`) | **Backend simulated in the browser.** No gateway, microservices, PostgreSQL or RabbitMQ needed. Useful for development and demos. Data is stored in `localStorage` and reset with the "Reset data" button of the yellow banner. |
 | `false` | Calls the real API Gateway at `VITE_API_BASE_URL` (`http://localhost:8080` by default). The gateway must allow the origin `http://localhost:5173` in CORS (`APP_GATEWAY_CORS_ORIGIN`). |
 
+### Mixed mode: real login and courts, simulated reservations
+
+While the API Gateway and the reservations services have no code, the frontend can call the
+services that exist and keep the rest simulated. Each request goes to its service by path, with
+the table in `src/api/routing.ts` (ADR-011 and ADR-012 in `ftx-docs`):
+
+| Domain | Paths | Service | Local port |
+|---|---|---|---|
+| `auth` | `/auth/**` | `ftx-customers-api` | 8081 |
+| `courts` | `/courts`, `/courts/{id}`, `/admin/courts/{id}` | `ftx-courts-api` | 8082 |
+| `schedules` | `/courts/{id}/schedules`, `/courts/{id}/bookable-slots`, `/admin/courts/{id}/schedules/**` | `ftx-schedules-api` | 8085 |
+| `reservations`, `payments` | the rest | simulated | — |
+
+```bash
+# .env
+VITE_API_MOCK=true
+VITE_API_REAL_DOMAINS=auth,courts,schedules
+VITE_API_BASE_URL=
+FTX_DEV_PROXY=true
+```
+
+`npm run dev` then proxies those paths to the local services (`vite.config.ts`, same table), so
+the browser only talks to its own origin. Start the services first (their READMEs). Log in with an
+administrator of `ftx-customers-api`; the simulated reservation screens accept that real token
+(the simulator reads its role and expiry without checking the signature, because it only guards
+data inside the browser). The simulated courts use the same four ids as `ftx-courts-db` and
+`ftx-schedules-db`, so both sides agree. The proxy never reaches a build: in qa and main the
+gateway routes the requests.
+
 The simulated mode (`src/api/mock/server.ts`) reproduces the contract rules the frontend must
 handle: 409 `RESERVATION_SLOT_UNAVAILABLE` on overlap, `Idempotency-Key`, generic 404 for
 reservation codes, court state transitions, JWT with rotating refresh, and eventual consistency

@@ -7,7 +7,7 @@ import { addDays, todayIso } from "../../lib/format";
 import { FAILURE_THRESHOLD, OPEN_STATE_MS, setFault, WOMPI_TIMEOUT_MS } from "./faults";
 import { mockTransport, resetMockDb } from "./server";
 
-const COURT_2 = "2b8d5f1a-6c3e-4d7b-8a9f-0e1d2c3b4a51";
+const COURT_2 = "c0000000-0000-4000-8000-000000000002";
 const DATE = addDays(todayIso(), 7);
 
 /** Ejecuta una petición avanzando el reloj simulado; devuelve la respuesta y el tiempo que tardó. */

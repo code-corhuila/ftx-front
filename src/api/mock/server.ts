@@ -39,6 +39,7 @@ import {
   todayIso,
   WEEK,
 } from "../../lib/format";
+import { config } from "../../config";
 import { readJson, removeKey, writeJson } from "../../lib/storage";
 import { uuid } from "../../lib/uuid";
 import { MOCK_ADMIN, MOCK_WEBHOOK_SIGNATURE } from "./constants";
@@ -81,7 +82,7 @@ interface Db {
 
 const STORAGE_KEY = "ftx.mock.db";
 // Subir la versión cuando cambian los datos iniciales: descarta los datos guardados en el navegador.
-const DB_VERSION = 2;
+const DB_VERSION = 3; // 3: ids de cancha del contrato compartido (ftx-courts-db, ftx-schedules-db)
 const ACCESS_TOKEN_TTL_MS = 3600 * 1000;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -94,11 +95,13 @@ const nowIso = () => new Date().toISOString();
 
 // ─── Datos iniciales ─────────────────────────────────────────────────────────
 
+// Los mismos cuatro ids del contrato que usan ftx-courts-db y ftx-schedules-db, para que los
+// datos simulados y los servicios reales coincidan en el modo mixto (VITE_API_REAL_DOMAINS).
 const COURT_SEED: Array<[string, string, number, number, CourtStatus]> = [
-  ["7c0f4c3e-2a55-4a3b-9f0d-1b8f6e2a9c11", "Cancha 1", 10, 60000, "ACTIVE"],
-  ["2b8d5f1a-6c3e-4d7b-8a9f-0e1d2c3b4a51", "Cancha 2", 10, 60000, "ACTIVE"],
-  ["9e4a7b2c-1d3f-4e5a-b6c7-d8e9f0a1b2c3", "Cancha 3", 14, 90000, "ACTIVE"],
-  ["5f6e7d8c-9b0a-4c1d-8e2f-3a4b5c6d7e8f", "Cancha 4", 14, 90000, "ACTIVE"],
+  ["c0000000-0000-4000-8000-000000000001", "Cancha 1", 10, 60000, "ACTIVE"],
+  ["c0000000-0000-4000-8000-000000000002", "Cancha 2", 10, 60000, "ACTIVE"],
+  ["c0000000-0000-4000-8000-000000000003", "Cancha 3", 14, 90000, "ACTIVE"],
+  ["c0000000-0000-4000-8000-000000000004", "Cancha 4", 14, 90000, "ACTIVE"],
 ];
 
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 32 símbolos: sin sesgo de módulo
@@ -350,6 +353,28 @@ function overlaps(d: Db, courtId: string, date: IsoDate, start: IsoTime, end: Is
 const scheduleOf = (d: Db, courtId: string, day: DayOfWeek) =>
   d.schedules.find((s) => s.courtId === courtId && s.dayOfWeek === day);
 
+/**
+ * Modo mixto con el login real (ftx-customers-api): el token no está en la tabla simulada. El
+ * simulador lee rol y vencimiento del JWT sin comprobar la firma, porque no tiene la llave y solo
+ * protege datos simulados dentro del navegador. Los servicios reales sí verifican la firma con el
+ * JWKS (ftx-courts-api); nunca uses esta regla fuera del simulador.
+ */
+export function realAdministratorTokenLooksValid(token: string, now = Date.now()): boolean {
+  const payload = token.split(".")[1];
+  if (!payload) return false;
+  try {
+    const json = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/"))) as { exp?: unknown; roles?: unknown };
+    return (
+      typeof json.exp === "number" &&
+      json.exp * 1000 > now &&
+      Array.isArray(json.roles) &&
+      json.roles.includes("ADMINISTRATOR")
+    );
+  } catch {
+    return false;
+  }
+}
+
 /** Gateway: valida el JWT antes de enrutar las operaciones /admin/**. */
 const admin =
   (handler: Handler): Handler =>
@@ -357,7 +382,10 @@ const admin =
     const header = ctx.headers["authorization"] ?? "";
     const token = header.startsWith("Bearer ") ? header.slice(7) : "";
     const expiresAt = token ? ctx.d.accessTokens[token] : undefined;
-    if (!expiresAt || expiresAt < Date.now()) return fail(401, "UNAUTHORIZED", "Authentication is required");
+    const valid = expiresAt
+      ? expiresAt >= Date.now()
+      : config.realDomains.has("auth") && realAdministratorTokenLooksValid(token);
+    if (!valid) return fail(401, "UNAUTHORIZED", "Authentication is required");
     return handler(ctx);
   };
 

@@ -13,7 +13,7 @@ const DATE = addDays(todayIso(), 7);
 const reservation: Reservation = {
   id: "5d2f4c1a-3b6e-4f8a-9c0d-1e2f3a4b5c6d",
   reservationCode: CODE,
-  courtId: "7c0f4c3e-2a55-4a3b-9f0d-1b8f6e2a9c11",
+  courtId: "c0000000-0000-4000-8000-000000000001",
   reservationDate: DATE,
   startTime: "18:00:00",
   endTime: "19:00:00",
