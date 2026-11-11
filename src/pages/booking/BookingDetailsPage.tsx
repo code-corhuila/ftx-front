@@ -4,6 +4,7 @@ import { reservationsApi } from "../../api/reservations";
 import { BookingSteps } from "../../components/BookingSteps";
 import { Alert, Button, PageHeader, TextField } from "../../components/ui";
 import { canBook, getBooking, maxConsecutiveHours, saveBooking, type BookingState } from "../../lib/booking";
+import { isPastStart } from "../../lib/businessClock";
 import { MAX_BOOKING_HOURS } from "../../lib/courtRules";
 import { errorMessage, fieldErrors, generalDetails, isApiError } from "../../lib/errors";
 import { addHours, formatDate, formatMoney, hhmm } from "../../lib/format";
@@ -25,6 +26,7 @@ function BookingDetailsForm({ initial }: { initial: BookingState }) {
   const [errors, setErrors] = useState<ContactErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [apiError, setApiError] = useState<unknown>(null);
+  const [startPassed, setStartPassed] = useState(false);
 
   const persist = (next: BookingState) => {
     saveBooking(next);
@@ -54,6 +56,12 @@ function BookingDetailsForm({ initial }: { initial: BookingState }) {
     const validation = validateContact(contact);
     setErrors(validation);
     if (Object.keys(validation).length > 0) return;
+
+    // La franja pudo empezar mientras se llenaba el formulario. El backend también lo rechaza.
+    if (isPastStart(b.date, b.startTime)) {
+      setStartPassed(true);
+      return;
+    }
 
     setSubmitting(true);
     setApiError(null);
@@ -183,6 +191,13 @@ function BookingDetailsForm({ initial }: { initial: BookingState }) {
             {formatMoney(b.hourlyPrice)} × {hours} {hours === 1 ? "hora" : "horas"}. El valor definitivo lo calcula el
             sistema al crear la reserva.
           </p>
+
+          {startPassed && (
+            <Alert tone="error" title="Esa hora ya pasó">
+              La franja de las {hhmm(b.startTime)} ya empezó y no se puede reservar.{" "}
+              <Link to={availabilityLink}>Elige otra franja</Link>.
+            </Alert>
+          )}
 
           {apiError !== null && (
             <Alert tone="error" title={errorMessage(apiError)}>

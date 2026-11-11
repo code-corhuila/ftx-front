@@ -8,6 +8,7 @@ import type {
   PaymentStatus,
   ReservationStatus,
 } from "../api/types";
+import { businessToday } from "./businessClock";
 
 // ─── Dinero ──────────────────────────────────────────────────────────────────
 
@@ -24,7 +25,8 @@ export function toIsoDate(d: Date): IsoDate {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
-export const todayIso = (): IsoDate => toIsoDate(new Date());
+/** "Hoy" en la zona horaria del negocio (America/Bogota), no la del computador del usuario. */
+export const todayIso = (): IsoDate => businessToday();
 
 export function addDays(iso: IsoDate, days: number): IsoDate {
   const d = parseIsoDate(iso);

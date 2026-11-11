@@ -1,4 +1,5 @@
 import type { AvailabilitySlot, IsoDate, IsoTime, Money, Reservation } from "../api/types";
+import { isPastStart } from "./businessClock";
 import { addHours, hoursBetween } from "./format";
 import { readJson, removeKey, writeJson } from "./storage";
 import type { ContactInput } from "./validation";
@@ -44,6 +45,18 @@ export function updateBooking(patch: Partial<BookingState>): BookingState | null
 }
 
 export const clearBooking = (): void => removeKey("session", KEY);
+
+/**
+ * Marca como no disponibles las franjas cuyo inicio ya pasó en la hora del negocio.
+ * Es ayuda de interfaz: la regla definitiva la aplica el backend al crear la reserva.
+ */
+export function withPastSlotsDisabled(
+  slots: AvailabilitySlot[],
+  date: IsoDate,
+  now: Date = new Date(),
+): AvailabilitySlot[] {
+  return slots.map((s) => (s.available && isPastStart(date, s.startTime, now) ? { ...s, available: false } : s));
+}
 
 /** ¿Están libres las `hours` franjas consecutivas que empiezan en `start`? */
 export function canBook(slots: AvailabilitySlot[], start: IsoTime, hours: number): boolean {
